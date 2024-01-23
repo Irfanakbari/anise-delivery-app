@@ -2,13 +2,29 @@ import 'package:easy_splash_screen/easy_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
+import 'package:hpm_outgoing_app/screen/homepage.dart';
+import 'package:keycloak_wrapper/keycloak_wrapper.dart';
 import 'package:palestine_first_run/palestine_first_run.dart';
 
-import 'screen/homepage.dart';
-import 'screen/ip_change.dart';
 import 'screen/login.dart';
 
-void main() {
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final keycloakWrapper = KeycloakWrapper();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await keycloakWrapper.initialize();
+  keycloakWrapper.onError = (e, s) {
+    print(e);
+
+    // Display the error message inside a snackbar.
+    scaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+        ),
+      );
+  };
   runApp(const MyApp());
 }
 
@@ -44,33 +60,33 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     // First time (true), then (false)
     return GetMaterialApp(
-        title: 'HPM Outgoing Scanner',
+        title: 'Ansei Outgoing Scanner',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: Obx(() => EasySplashScreen(
-              logo: Image.asset(
-                'assets/images/logo.png',
-                width: 300,
-              ),
-              title: const Text(
-                "HPM Outgoing Scanner",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              backgroundColor: Colors.grey.shade400,
-              showLoader: true,
-              loadingText: const Text("Loading..."),
-              navigator: isFirst.value
-                  ? const IpChange()
-                  : isLogin.value
-                      ? const MyHomePage()
-                      : const Login(),
-              durationInSeconds: 2,
-            )));
+        home: EasySplashScreen(
+          logo: Image.asset(
+            'assets/images/logo.png',
+            width: 300,
+          ),
+          title: const Text(
+            "Ansei Delivery Scanner",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Colors.grey.shade400,
+          showLoader: true,
+          loadingText: const Text("Loading..."),
+          navigator: StreamBuilder<bool>(
+              initialData: false,
+              stream: keycloakWrapper.authenticationStream,
+              builder: (context, snapshot) =>
+                  snapshot.data! ? const MyHomePage() : const Login()),
+          durationInSeconds: 2,
+        ));
   }
 }

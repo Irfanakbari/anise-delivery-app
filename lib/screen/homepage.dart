@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:hpm_outgoing_app/main.dart';
 import 'package:material_dialogs/material_dialogs.dart';
 import 'package:material_dialogs/widgets/buttons/icon_button.dart';
 import 'package:material_dialogs/widgets/buttons/icon_outline_button.dart';
 
-import 'ip_change.dart';
-import 'login.dart';
 import 'scan.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -25,24 +24,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _logout() async {
     try {
-      final base = await storage.read(key: '@vuteq-ip');
-      await dio
-          .get('http://$base/api/auth/logout',
-              options: Options(
-                receiveTimeout: const Duration(milliseconds: 5000),
-                sendTimeout: const Duration(milliseconds: 5000),
-              ))
-          .then((value) async {
-        Fluttertoast.showToast(
-          msg: "Logout Berhasil",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        await storage.delete(key: "@vuteq-token");
-        await Get.off(const Login());
-      });
+      await keycloakWrapper.logout();
     } catch (e) {
       Fluttertoast.showToast(
         msg: "Logout Gagal",
@@ -160,31 +142,31 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    Get.to(const IpChange());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent, // Warna tombol 'Ganti IP Server'
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 10),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.settings, // Ganti dengan ikon Settings
-                        size: 20.0,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 8), // Jarak antara ikon dan teks
-                      Text(
-                        'IP Setting',
-                        style: TextStyle(fontSize: 15.0, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     Get.to(const IpChange());
+                //   },
+                //   style: ElevatedButton.styleFrom(
+                //     backgroundColor: Colors.blueAccent, // Warna tombol 'Ganti IP Server'
+                //     padding: const EdgeInsets.symmetric(
+                //         horizontal: 30, vertical: 10),
+                //   ),
+                //   child: const Row(
+                //     mainAxisAlignment: MainAxisAlignment.center,
+                //     children: [
+                //       Icon(
+                //         Icons.settings, // Ganti dengan ikon Settings
+                //         size: 20.0,
+                //         color: Colors.white,
+                //       ),
+                //       SizedBox(width: 8), // Jarak antara ikon dan teks
+                //       Text(
+                //         'IP Setting',
+                //         style: TextStyle(fontSize: 15.0, color: Colors.white),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ])
             ],
           ),

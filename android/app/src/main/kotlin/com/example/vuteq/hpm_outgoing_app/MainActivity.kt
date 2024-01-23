@@ -1,4 +1,4 @@
-package com.example.vuteq.hpm_outgoing_app
+package com.vuteq
 
 import io.flutter.embedding.android.FlutterActivity
 
