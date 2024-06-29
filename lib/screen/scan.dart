@@ -13,7 +13,7 @@ import 'package:status_alert/status_alert.dart';
 import '../utils/interceptor.dart';
 
 class Scan extends StatefulWidget {
-  const Scan({Key? key}) : super(key: key);
+  const Scan({super.key});
 
   @override
   State<Scan> createState() => _ScanState();
@@ -23,10 +23,16 @@ class _ScanState extends State<Scan> {
   final _qrBarCodeScannerDialogPlugin = QrBarCodeScannerDialog();
   final storage = const FlutterSecureStorage();
   RxString qrInternal = "-".obs;
-  final dio = DioClient();
+  final dio = Dio(BaseOptions(baseUrl: 'http://192.168.7.73:5000/v1'));
   // RxString qrCodeVuteq = "-".obs;
-  RxString qrPO = "-".obs;
-  RxString qrAnsei = "-".obs;
+
+  RxString qrPOId = "-".obs;
+  RxString qrPartNo = "-".obs;
+  RxString qrPartId = "-".obs;
+  RxString qrBarcodeInternal = "-".obs;
+  RxString qrBarcodeExternal = "-".obs;
+  RxString qrBarcodeSistem = "-".obs;
+
   RxList riwayat = [].obs;
   RxBool isSubmitDisabled = true.obs;
   RxBool isLoading = false.obs;
@@ -92,22 +98,18 @@ class _ScanState extends State<Scan> {
 
   getPCCDetails(String po) async {
     final Map<String, dynamic> postData = {
-      'po_number': qrPO.value,
-      'part_number': qrInternal.value
+      // 'po_number': qrPO.value,
+      'po_id': qrPOId.value,
     };
     debugPrint(postData.toString());
     try {
-      var response = await dio.dio.post('/histories/check', data: postData);
+      dio.interceptors.add(CustomInterceptors());
+      var response = await dio.post('/pokayoke/compare/get', data: postData);
       // showSuccessAlert('Sukses', 'Data Riwayat Tersimpan', Colors.greenAccent);
       // Reset nilai-nilai
-      qrAnsei.value = response.data['partsNumber'] ?? '-';
-      if (qrInternal.value != qrAnsei.value) {
-        playBipBipSound();
-        Vibrate.vibrateWithPauses(pauses);
-        showAlert('Error', 'Part Tag Tidak Sama', Colors.redAccent);
-        qrAnsei.value = '-';
-        await reportFailed();
-      }
+      qrPartNo.value = response.data['part_no'] ?? '-';
+      qrBarcodeSistem.value = response.data['barcode'] ?? '-';
+      qrPartId.value = response.data['part_id'] ?? '-';
     } on DioException catch (e) {
       debugPrint(e.response.toString());
       playBipBipSound();
@@ -115,9 +117,10 @@ class _ScanState extends State<Scan> {
       showAlert('Error', 'PO Number tidak sesuai dengan Part Number',
           Colors.redAccent);
       await reportFailed();
-      qrAnsei.value = '-';
+      qrPartNo.value = '-';
       // qrCodeVuteq.value = '-';
-      qrInternal.value = '-';
+      qrPartId.value = '-';
+      qrPOId.value = '-';
     } finally {
       isSubmitDisabled.value = true;
     }
@@ -129,11 +132,11 @@ class _ScanState extends State<Scan> {
     _streamSubscription =
         _eventChannel.receiveBroadcastStream().listen((value) async {
       try {
-        if (qrPO.value == '-') {
-          qrPO.value = value['barcodeData'];
-        } else if (qrInternal.value == '-') {
-          qrInternal.value = value['barcodeData'];
-          await getPCCDetails(qrPO.value);
+        if (qrPOId.value == '-') {
+          qrPOId.value = value['barcodeData'];
+          await getPCCDetails(qrPOId.value);
+        } else {
+          qrBarcodeInternal.value = value['barcodeData'];
         }
       } catch (e) {
         showAlert('Error', 'Kesalahan Pada Scanner', Colors.redAccent);
@@ -168,12 +171,13 @@ class _ScanState extends State<Scan> {
   reportFailed() async {
     try {
       final Map<String, dynamic> postData = {
-        'po_number': qrPO.value,
-        'parts_number': qrInternal.value,
+        'po_id': qrPOId.value,
+        'part_no': qrInternal.value,
       };
       debugPrint(postData.toString());
+      dio.interceptors.add(CustomInterceptors());
 
-      await dio.dio.post('/histories/failed', data: postData);
+      await dio.post('/histories/failed', data: postData);
 
       riwayat.add({"qr": qrInternal.value, "date": DateTime.now()});
 
@@ -185,39 +189,41 @@ class _ScanState extends State<Scan> {
           e.response?.data['message'] ?? 'Gagal Menghubungi Server',
           Colors.redAccent);
     } finally {
-      qrAnsei.value = '-';
+      qrPOId.value = '-';
       // qrCodeVuteq.value = '-';
       qrInternal.value = '-';
     }
   }
 
   submitData() async {
-    if (qrAnsei.value == qrInternal.value) {
+    if (qrBarcodeInternal.value == qrBarcodeSistem.value) {
       final Map<String, dynamic> postData = {
-        'po_number': qrPO.value,
-        'parts_number': qrInternal.value,
+        'po_id': qrPOId.value,
+        'part_no': qrPartNo.value,
       };
-      debugPrint(postData.toString());
       try {
-        await dio.dio.post('/histories', data: postData);
+        dio.interceptors.add(CustomInterceptors());
+
+        await dio.post('/histories', data: postData);
 
         riwayat.add({"qr": qrInternal.value, "date": DateTime.now()});
 
         showSuccessAlert(
             'Sukses', 'Data Riwayat Tersimpan', Colors.greenAccent);
         // Reset nilai-nilai
-        qrInternal.value = '-';
+        qrBarcodeInternal.value = '-';
         // qrCodeVuteq.value = '-';
-        qrAnsei.value = '-';
+        qrBarcodeSistem.value = '-';
+        qrPartNo.value = '-';
+        qrPOId.value = '-';
       } on DioException catch (e) {
         // Kesalahan jaringan
         showAlert(
             'Error',
             e.response?.data['message'] ?? 'Kesalahan Jaringan/Server',
             Colors.redAccent);
-        qrInternal.value = '-';
         // qrCodeVuteq.value = '-';
-        qrAnsei.value = '-';
+        qrBarcodeInternal.value = '-';
       } finally {
         isSubmitDisabled.value = true;
       }
@@ -230,7 +236,7 @@ class _ScanState extends State<Scan> {
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: const Text(
-            'Scanner Compare',
+            'Scanner Part Tag Compare',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
         ),
@@ -249,7 +255,7 @@ class _ScanState extends State<Scan> {
                       children: [
                         const Center(
                           child: Text(
-                            'PO Number',
+                            'External Label Number',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -261,7 +267,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrPO.value,
+                              qrPOId.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -272,14 +278,31 @@ class _ScanState extends State<Scan> {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
+                            onPressed: () {
+                              _qrBarCodeScannerDialogPlugin.getScannedQrBarCode(
+                                  context: context,
+                                  onCode: (code) async {
+                                    if (qrPOId.value == '-') {
+                                      qrPOId.value = code!;
+                                      await getPCCDetails(qrPOId.value);
+                                    } else {
+                                      qrBarcodeInternal.value = code!;
+                                    }
+                                  });
+                            },
+                            child: const Text("Click me")),
+                        ElevatedButton(
                             onPressed: () async {
-                              qrPO.value = '-';
+                              qrPOId.value = '-';
+                              qrPartNo.value = '-';
+                              qrPartId.value = '-';
+                              qrBarcodeSistem.value = '-';
                             },
                             child: const Text("Reset")),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         const Center(
                           child: Text(
-                            'Internal Part Number',
+                            'Part Number',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -291,7 +314,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrInternal.value,
+                              qrPartNo.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -300,10 +323,10 @@ class _ScanState extends State<Scan> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         const Center(
                           child: Text(
-                            'Ansei Part Number',
+                            'PO ID',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -315,7 +338,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrAnsei.value,
+                              qrBarcodeExternal.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -324,10 +347,10 @@ class _ScanState extends State<Scan> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        // const SizedBox(height: 10),
                         // const Center(
                         //   child: Text(
-                        //     'Vuteq Barcode',
+                        //     'Part ID',
                         //     style: TextStyle(
                         //         fontSize: 22, fontWeight: FontWeight.bold),
                         //   ),
@@ -339,47 +362,59 @@ class _ScanState extends State<Scan> {
                         //   padding: const EdgeInsets.symmetric(horizontal: 20),
                         //   child: Center(
                         //     child: Text(
-                        //       qrCodeVuteq.value,
+                        //       qrPartId.value,
                         //       textAlign: TextAlign.center,
                         //       style: const TextStyle(
-                        //           fontSize: 25,
+                        //           fontSize: 22,
                         //           fontWeight: FontWeight.bold,
                         //           color: Colors.white),
                         //     ),
                         //   ),
                         // ),
-                        // const SizedBox(height: 20),
-                        ElevatedButton(
-                            onPressed: () {
-                              _qrBarCodeScannerDialogPlugin.getScannedQrBarCode(
-                                  context: context,
-                                  onCode: (code) async {
-                                    if (qrPO.value == '-') {
-                                      qrPO.value = code!;
-                                    } else if (qrInternal.value == '-') {
-                                      qrInternal.value = code!;
-                                      await getPCCDetails(qrPO.value);
-                                    }
-                                  });
-                            },
-                            child: const Text("Scan Kamera")),
+                        const SizedBox(height: 10),
+                        const Center(
+                          child: Text(
+                            'Internal Label Number',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          color: Colors.grey,
+                          width: double.infinity,
+                          height: 60,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Center(
+                            child: Text(
+                              qrBarcodeInternal.value,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                     const SizedBox(height: 20),
                     const SizedBox(height: 20),
                     InkWell(
-                        onTap: (qrAnsei.value != '-' &&
-                                qrInternal.value != '-' &&
-                                (qrAnsei.value == qrInternal.value))
+                        onTap: (qrPOId.value != '-' &&
+                                qrPartNo.value != '-' &&
+                                (qrBarcodeInternal.value ==
+                                    qrBarcodeSistem.value))
                             ? () async {
                                 await submitData();
                               }
                             : null,
                         child: Container(
                           width: Get.width,
-                          color: (qrAnsei.value != '-' &&
-                                  qrInternal.value != '-' &&
-                                  (qrAnsei.value == qrInternal.value))
+                          color: (qrPOId.value != '-' &&
+                                  qrPartNo.value != '-' &&
+                                  (qrBarcodeInternal.value ==
+                                      qrBarcodeSistem.value))
                               ? Colors.red
                               : Colors.grey,
                           child: const Padding(

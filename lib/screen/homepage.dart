@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
-import 'package:hpm_outgoing_app/main.dart';
-import 'package:material_dialogs/material_dialogs.dart';
-import 'package:material_dialogs/widgets/buttons/icon_button.dart';
-import 'package:material_dialogs/widgets/buttons/icon_outline_button.dart';
 
+import '../controllers/global_controller.dart';
+import 'login.dart';
 import 'scan.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -18,13 +16,23 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalController globalController =
+      Get.find(); // Inisialisasi controller
   final storage = const FlutterSecureStorage();
   final dio = Dio();
   final TextEditingController _controllerIp = TextEditingController();
 
   Future<void> _logout() async {
     try {
-      await keycloakWrapper.logout();
+      globalController.clearGlobalVariable();
+      Fluttertoast.showToast(
+        msg: "Logout Berhasil",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+      await Get.off(const Login());
     } catch (e) {
       Fluttertoast.showToast(
         msg: "Logout Gagal",
@@ -94,32 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ]),
               Column(children: [
                 ElevatedButton(
-                  onPressed: () => Dialogs.materialDialog(
-                      msg: 'Apa Kamu Yakin Ingin Logout dari Akun?',
-                      title: "Keluar",
-                      color: Colors.white,
-                      context: context,
-                      actions: [
-                        IconsOutlineButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          text: 'Batal',
-                          iconData: Icons.cancel_outlined,
-                          textStyle: const TextStyle(color: Colors.grey),
-                          iconColor: Colors.grey,
-                        ),
-                        IconsButton(
-                          onPressed: () {
-                            _logout();
-                          },
-                          text: 'Ya',
-                          iconData: Icons.logout,
-                          color: Colors.red,
-                          textStyle: const TextStyle(color: Colors.white),
-                          iconColor: Colors.white,
-                        ),
-                      ]),
+                  onPressed: () => _logout(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red, // Warna tombol 'Scanner Masuk'
                     padding: const EdgeInsets.symmetric(
@@ -142,31 +125,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                // ElevatedButton(
-                //   onPressed: () {
-                //     Get.to(const IpChange());
-                //   },
-                //   style: ElevatedButton.styleFrom(
-                //     backgroundColor: Colors.blueAccent, // Warna tombol 'Ganti IP Server'
-                //     padding: const EdgeInsets.symmetric(
-                //         horizontal: 30, vertical: 10),
-                //   ),
-                //   child: const Row(
-                //     mainAxisAlignment: MainAxisAlignment.center,
-                //     children: [
-                //       Icon(
-                //         Icons.settings, // Ganti dengan ikon Settings
-                //         size: 20.0,
-                //         color: Colors.white,
-                //       ),
-                //       SizedBox(width: 8), // Jarak antara ikon dan teks
-                //       Text(
-                //         'IP Setting',
-                //         style: TextStyle(fontSize: 15.0, color: Colors.white),
-                //       ),
-                //     ],
-                //   ),
-                // ),
               ])
             ],
           ),

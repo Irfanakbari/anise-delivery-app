@@ -4,8 +4,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 class IpChange extends StatefulWidget {
   const IpChange({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<IpChange> createState() => _IpChangeState();
