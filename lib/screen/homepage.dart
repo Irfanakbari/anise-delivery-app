@@ -20,7 +20,6 @@ class _MyHomePageState extends State<MyHomePage> {
       Get.find(); // Inisialisasi controller
   final storage = const FlutterSecureStorage();
   final dio = Dio();
-  final TextEditingController _controllerIp = TextEditingController();
 
   Future<void> _logout() async {
     try {
@@ -46,9 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
-    _controllerIp.dispose();
   }
 
   @override
@@ -85,7 +82,38 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           SizedBox(width: 10),
                           Text(
-                            'Scan',
+                            'Scan Pokayoke',
+                            style: TextStyle(
+                              fontSize: 22.0,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10.0),
+                InkWell(
+                  onTap: () => Get.to(const Scan()),
+                  child: Container(
+                    width: Get.width,
+                    color: Colors.green,
+                    child: const Padding(
+                      padding: EdgeInsets.all(15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.scanner, // Ganti dengan ikon yang diinginkan
+                            color: Colors.white,
+                            size: 24.0,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Scan Delivery',
                             style: TextStyle(
                               fontSize: 22.0,
                               color: Colors.white,

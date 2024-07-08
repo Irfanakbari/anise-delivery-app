@@ -22,16 +22,14 @@ class Scan extends StatefulWidget {
 class _ScanState extends State<Scan> {
   final _qrBarCodeScannerDialogPlugin = QrBarCodeScannerDialog();
   final storage = const FlutterSecureStorage();
-  RxString qrInternal = "-".obs;
-  final dio = Dio(BaseOptions(baseUrl: 'http://192.168.7.73:5000/v1'));
+  final dio = Dio(BaseOptions(baseUrl: 'https://api-ansei.vuteq.co.id/v1/'));
   // RxString qrCodeVuteq = "-".obs;
 
-  RxString qrPOId = "-".obs;
-  RxString qrPartNo = "-".obs;
-  RxString qrPartId = "-".obs;
-  RxString qrBarcodeInternal = "-".obs;
-  RxString qrBarcodeExternal = "-".obs;
-  RxString qrBarcodeSistem = "-".obs;
+  RxString qrLabelNumberExternal = "-".obs;
+  RxString qrPartNumberExternal = "-".obs;
+  RxString qrPOIDExternal = "-".obs;
+
+  RxString qrLabelNumberInternal = "-".obs;
 
   RxList riwayat = [].obs;
   RxBool isSubmitDisabled = true.obs;
@@ -97,30 +95,32 @@ class _ScanState extends State<Scan> {
   }
 
   getPCCDetails(String po) async {
-    final Map<String, dynamic> postData = {
-      // 'po_number': qrPO.value,
-      'po_id': qrPOId.value,
-    };
-    debugPrint(postData.toString());
     try {
       dio.interceptors.add(CustomInterceptors());
-      var response = await dio.post('/pokayoke/compare/get', data: postData);
+      var response = await dio.get('/pokayoke/compare/get/$po',);
       // showSuccessAlert('Sukses', 'Data Riwayat Tersimpan', Colors.greenAccent);
       // Reset nilai-nilai
-      qrPartNo.value = response.data['part_no'] ?? '-';
-      qrBarcodeSistem.value = response.data['barcode'] ?? '-';
-      qrPartId.value = response.data['part_id'] ?? '-';
+      // Debug: Print entire response
+      debugPrint(response.data.toString());
+
+      // Safely access nested fields
+      var partNumber = response.data['PO']?['Part']?['partNumber'] ?? '-';
+      var forecastId = response.data['forecastId'] ?? '-';
+
+      debugPrint(partNumber);
+      qrPartNumberExternal.value = partNumber;
+
+      qrPOIDExternal.value = forecastId;
     } on DioException catch (e) {
-      debugPrint(e.response.toString());
       playBipBipSound();
       Vibrate.vibrateWithPauses(pauses);
-      showAlert('Error', 'PO Number tidak sesuai dengan Part Number',
+      showAlert('Error', 'Label Number Tidak Ditemukan',
           Colors.redAccent);
       await reportFailed();
-      qrPartNo.value = '-';
-      // qrCodeVuteq.value = '-';
-      qrPartId.value = '-';
-      qrPOId.value = '-';
+      qrPartNumberExternal.value = '-';
+      qrPOIDExternal.value = '-';
+      qrPOIDExternal.value = '-';
+      qrLabelNumberInternal.value ='-';
     } finally {
       isSubmitDisabled.value = true;
     }
@@ -132,11 +132,17 @@ class _ScanState extends State<Scan> {
     _streamSubscription =
         _eventChannel.receiveBroadcastStream().listen((value) async {
       try {
-        if (qrPOId.value == '-') {
-          qrPOId.value = value['barcodeData'];
-          await getPCCDetails(qrPOId.value);
+        if (qrLabelNumberExternal.value == '-') {
+          qrLabelNumberExternal.value = value['barcodeData'];
+          await getPCCDetails(qrLabelNumberExternal.value);
         } else {
-          qrBarcodeInternal.value = value['barcodeData'];
+          qrLabelNumberInternal.value = value['barcodeData'];
+          if (qrLabelNumberExternal.value != qrLabelNumberInternal.value) {
+            Vibrate.vibrateWithPauses(pauses);
+            showAlert('Error', 'Label Number Tidak Cocok',
+                Colors.redAccent);
+            await reportFailed();
+          }
         }
       } catch (e) {
         showAlert('Error', 'Kesalahan Pada Scanner', Colors.redAccent);
@@ -147,7 +153,6 @@ class _ScanState extends State<Scan> {
   @override
   void dispose() {
     _streamSubscription?.cancel();
-    // TODO: implement dispose
     super.dispose();
     riwayat.clear();
   }
@@ -171,15 +176,15 @@ class _ScanState extends State<Scan> {
   reportFailed() async {
     try {
       final Map<String, dynamic> postData = {
-        'po_id': qrPOId.value,
-        'part_no': qrInternal.value,
+        'poId': qrPOIDExternal.value,
+        'labelNumber': qrLabelNumberExternal.value,
+        'status': false
       };
-      debugPrint(postData.toString());
       dio.interceptors.add(CustomInterceptors());
 
-      await dio.post('/histories/failed', data: postData);
+      await dio.post('pokayoke/compare', data: postData);
 
-      riwayat.add({"qr": qrInternal.value, "date": DateTime.now()});
+      riwayat.add({"qr": qrLabelNumberInternal.value, "date": DateTime.now()});
 
       // showSuccessAlert('Sukses', 'Data Riwayat Tersimpan', Colors.greenAccent);
     } on DioException catch (e) {
@@ -189,33 +194,32 @@ class _ScanState extends State<Scan> {
           e.response?.data['message'] ?? 'Gagal Menghubungi Server',
           Colors.redAccent);
     } finally {
-      qrPOId.value = '-';
-      // qrCodeVuteq.value = '-';
-      qrInternal.value = '-';
+      qrPartNumberExternal.value = '-';
+      qrPOIDExternal.value = '-';
+      qrLabelNumberExternal.value = '-';
+      qrLabelNumberInternal.value ='-';
     }
   }
 
   submitData() async {
-    if (qrBarcodeInternal.value == qrBarcodeSistem.value) {
+    if (qrLabelNumberExternal.value == qrLabelNumberInternal.value) {
       final Map<String, dynamic> postData = {
-        'po_id': qrPOId.value,
-        'part_no': qrPartNo.value,
+        'poId': qrPOIDExternal.value,
+        'labelNumber': qrLabelNumberExternal.value,
+        'status': true
       };
       try {
         dio.interceptors.add(CustomInterceptors());
 
-        await dio.post('/histories', data: postData);
-
-        riwayat.add({"qr": qrInternal.value, "date": DateTime.now()});
+        await dio.post('pokayoke/compare', data: postData);
 
         showSuccessAlert(
             'Sukses', 'Data Riwayat Tersimpan', Colors.greenAccent);
         // Reset nilai-nilai
-        qrBarcodeInternal.value = '-';
-        // qrCodeVuteq.value = '-';
-        qrBarcodeSistem.value = '-';
-        qrPartNo.value = '-';
-        qrPOId.value = '-';
+        qrPartNumberExternal.value = '-';
+        qrPOIDExternal.value = '-';
+        qrLabelNumberExternal.value = '-';
+        qrLabelNumberInternal.value ='-';
       } on DioException catch (e) {
         // Kesalahan jaringan
         showAlert(
@@ -223,7 +227,10 @@ class _ScanState extends State<Scan> {
             e.response?.data['message'] ?? 'Kesalahan Jaringan/Server',
             Colors.redAccent);
         // qrCodeVuteq.value = '-';
-        qrBarcodeInternal.value = '-';
+        qrPartNumberExternal.value = '-';
+        qrPOIDExternal.value = '-';
+        qrLabelNumberExternal.value = '-';
+        qrLabelNumberInternal.value ='-';
       } finally {
         isSubmitDisabled.value = true;
       }
@@ -267,7 +274,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrPOId.value,
+                              qrLabelNumberExternal.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -276,33 +283,33 @@ class _ScanState extends State<Scan> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                            onPressed: () {
-                              _qrBarCodeScannerDialogPlugin.getScannedQrBarCode(
-                                  context: context,
-                                  onCode: (code) async {
-                                    if (qrPOId.value == '-') {
-                                      qrPOId.value = code!;
-                                      await getPCCDetails(qrPOId.value);
-                                    } else {
-                                      qrBarcodeInternal.value = code!;
-                                    }
-                                  });
-                            },
-                            child: const Text("Click me")),
+                        const SizedBox(height: 10),
+                        // ElevatedButton(
+                        //     onPressed: () {
+                        //       _qrBarCodeScannerDialogPlugin.getScannedQrBarCode(
+                        //           context: context,
+                        //           onCode: (code) async {
+                        //             if (qrLabelNumberExternal.value == '-') {
+                        //               qrLabelNumberExternal.value = code!;
+                        //               await getPCCDetails(qrLabelNumberExternal.value);
+                        //             } else {
+                        //               qrLabelNumberInternal.value = code!;
+                        //             }
+                        //           });
+                        //     },
+                        //     child: const Text("Click me")),
                         ElevatedButton(
                             onPressed: () async {
-                              qrPOId.value = '-';
-                              qrPartNo.value = '-';
-                              qrPartId.value = '-';
-                              qrBarcodeSistem.value = '-';
+                              qrPartNumberExternal.value = '-';
+                              qrPOIDExternal.value = '-';
+                              qrLabelNumberExternal.value = '-';
+                              qrLabelNumberInternal.value ='-';
                             },
                             child: const Text("Reset")),
                         const SizedBox(height: 10),
                         const Center(
                           child: Text(
-                            'Part Number',
+                            'Part Number External',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -314,7 +321,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrPartNo.value,
+                              qrPartNumberExternal.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -326,7 +333,7 @@ class _ScanState extends State<Scan> {
                         const SizedBox(height: 10),
                         const Center(
                           child: Text(
-                            'PO ID',
+                            'PO Number External',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -338,7 +345,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrBarcodeExternal.value,
+                              qrPOIDExternal.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -386,7 +393,7 @@ class _ScanState extends State<Scan> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              qrBarcodeInternal.value,
+                              qrLabelNumberInternal.value,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -401,20 +408,20 @@ class _ScanState extends State<Scan> {
                     const SizedBox(height: 20),
                     const SizedBox(height: 20),
                     InkWell(
-                        onTap: (qrPOId.value != '-' &&
-                                qrPartNo.value != '-' &&
-                                (qrBarcodeInternal.value ==
-                                    qrBarcodeSistem.value))
+                        onTap: (qrPOIDExternal.value != '-' &&
+                                qrPartNumberExternal.value != '-' &&
+                                (qrLabelNumberExternal.value ==
+                                    qrLabelNumberInternal.value))
                             ? () async {
                                 await submitData();
                               }
                             : null,
                         child: Container(
                           width: Get.width,
-                          color: (qrPOId.value != '-' &&
-                                  qrPartNo.value != '-' &&
-                                  (qrBarcodeInternal.value ==
-                                      qrBarcodeSistem.value))
+                          color:  (qrPOIDExternal.value != '-' &&
+                              qrPartNumberExternal.value != '-' &&
+                              (qrLabelNumberExternal.value ==
+                                  qrLabelNumberInternal.value))
                               ? Colors.red
                               : Colors.grey,
                           child: const Padding(

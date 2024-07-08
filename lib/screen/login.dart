@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
-import 'package:hpm_outgoing_app/screen/homepage.dart';
 
 import '../controllers/global_controller.dart';
+import 'homepage.dart';
 
 class Login extends StatefulWidget {
   const Login({
@@ -48,7 +48,7 @@ class _LoginState extends State<Login> {
     // Lakukan validasi form
     // if (_formKey.currentState!.validate()) {
     try {
-      const base = "http://10.10.10.10:1000/v1";
+      const base = "https://api2.vuteq.co.id/v1";
       final response = await dio.post(
           '$base/auth/login', // Ganti URL sesuai dengan endpoint login Anda
           data: {'username': username, 'password': password},
@@ -76,29 +76,6 @@ class _LoginState extends State<Login> {
     }
     // }
   }
-
-  // Future<void> save() async {
-  //   final ip = _controllerIp.text;
-  //   try {
-  //     await storage.write(key: "@vuteq-ip", value: ip);
-  //     Fluttertoast.showToast(
-  //       msg: "IP Berhasil Disimpan",
-  //       toastLength: Toast.LENGTH_SHORT,
-  //       gravity: ToastGravity.TOP,
-  //       backgroundColor: Colors.green,
-  //       textColor: Colors.white,
-  //     );
-  //     await Get.off(const Login());
-  //   } catch (e) {
-  //     Fluttertoast.showToast(
-  //       msg: "IP Gagal Disimpan",
-  //       toastLength: Toast.LENGTH_SHORT,
-  //       gravity: ToastGravity.TOP,
-  //       backgroundColor: Colors.red,
-  //       textColor: Colors.white,
-  //     );
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
