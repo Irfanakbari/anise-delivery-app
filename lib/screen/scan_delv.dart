@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:get/get.dart';
 import 'package:qr_bar_code_scanner_dialog/qr_bar_code_scanner_dialog.dart';
 import 'package:status_alert/status_alert.dart';
@@ -20,10 +19,8 @@ class ScanDelv extends StatefulWidget {
 }
 
 class _ScanDelvState extends State<ScanDelv> {
-  final _qrBarCodeScannerDialogPlugin = QrBarCodeScannerDialog();
   final storage = const FlutterSecureStorage();
   final dio = Dio(BaseOptions(baseUrl: 'https://api-ansei.vuteq.co.id/v1/'));
-  // RxString qrCodeVuteq = "-".obs;
 
   RxString qrLabelNumberExternal = "-".obs;
 
@@ -111,22 +108,6 @@ class _ScanDelvState extends State<ScanDelv> {
     super.dispose();
     riwayat.clear();
   }
-
-  // getPCCDetails(kode) async {
-  //   try {
-  //     // Add the CustomInterceptors to the Dio instance
-  //     dio.interceptors.add(CustomInterceptors());
-  //     var result = await dio.get('orders/' + kode);
-  //     var order = result.data['data'];
-  //     qrCodeHPM.value = order['part_no'].toString();
-  //     partName.value = order['part_name'].toString();
-  //   } catch (e) {
-  //     qrInternal.value = '-';
-  //     qrCodeVuteq.value = '-';
-  //     qrCodeHPM.value = '-';
-  //     showAlert('Error', 'Server tidak merespon permintaan', Colors.redAccent);
-  //   }
-  // }
 
   reportFailed() async {
     try {

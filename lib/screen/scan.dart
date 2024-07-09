@@ -406,7 +406,6 @@ class _ScanState extends State<Scan> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const SizedBox(height: 20),
                     InkWell(
                         onTap: (qrPOIDExternal.value != '-' &&
                                 qrPartNumberExternal.value != '-' &&
