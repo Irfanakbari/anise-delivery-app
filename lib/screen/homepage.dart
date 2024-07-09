@@ -1,3 +1,4 @@
+import 'package:Ansei_Scanner/screen/scan_delv.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -97,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 const SizedBox(height: 10.0),
                 InkWell(
-                  onTap: () => Get.to(const Scan()),
+                  onTap: () => Get.to(const ScanDelv()),
                   child: Container(
                     width: Get.width,
                     color: Colors.green,
